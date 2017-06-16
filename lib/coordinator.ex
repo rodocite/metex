@@ -18,7 +18,10 @@ defmodule Metex.Coordinator do
   end
 
   defp handle_loop(:exit, results) do
-    IO.puts(results |> Enum.sort |> Enum.join(", "))
+    results 
+    |> Enum.sort
+    |> Enum.join(", ")
+    |> IO.puts
   end
 
   defp handle_loop(results, results_expected) do
