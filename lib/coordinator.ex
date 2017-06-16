@@ -13,9 +13,7 @@ defmodule Metex.Coordinator do
 
   defp handle_loop(result, results, results_expected) do
     new_results = [result | results]
-
     all_results_resolved?(results_expected, new_results)
-
     loop(new_results, results_expected)
   end
 
