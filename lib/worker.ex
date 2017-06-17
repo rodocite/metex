@@ -3,16 +3,18 @@ defmodule Metex.Worker do
 
   @apikey "b03676716ea37864a16cb2af011b1376"
   
+  ## Client API
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
 
-  def init(:ok) do
-    {:ok, %{}}
-  end
-
   def get_temperature(pid, location) do
     GenServer.call(pid, {:location, location})
+  end
+
+  ## Callbacks
+  def init(:ok) do
+    {:ok, %{}}
   end
 
   def handle_call({:location, location}, _from, stats) do
@@ -25,7 +27,7 @@ defmodule Metex.Worker do
         {:reply, :error, stats}
     end
   end
-
+  
   ## Helpers
   defp temperature_of(location) do
     url_for(location) 
