@@ -52,6 +52,11 @@ defmodule Metex.Worker do
     {:stop, :normal, stats}
   end
 
+  def handle_info(msg, stats) do
+    IO.puts("Received out of band message: #{inspect msg}")
+    {:noreply, stats}
+  end
+
   def terminate(reason, stats) do
     IO.puts "Server terminated - #{inspect reason}"
     IO.puts "Dumping data..."
