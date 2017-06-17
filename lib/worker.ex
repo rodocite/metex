@@ -1,47 +1,45 @@
 defmodule Metex.Worker do
-  
+  use GenServer
+
   @apikey "b03676716ea37864a16cb2af011b1376"
   
-  def loop do
-    receive do
-      {sender_pid, location} ->
-        send(sender_pid, {:ok, temperature_of(location)})
-      _ -> IO.puts("Don't know how to process this message.")
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  def init(:ok) do
+    {:ok, %{}}
+  end
+
+  def get_temperature(pid, location) do
+    GenServer.call(pid, {:location, location})
+  end
+
+  def handle_call({:location, location}, _from, stats) do
+    temperature_of(location)
+    |> case do
+      {:ok, temp} ->
+        new_stats = update_stats(stats, location)
+        {:reply, "#{temp}°F", new_stats}
+      _ ->
+        {:reply, :error, stats}
     end
-
-    loop()
   end
 
-  def temperatures_of(cities) do
-    coordinator_pid = spawn(Metex.Coordinator, :loop, [[], Enum.count(cities)])
-
-    cities 
-    |> Enum.each(fn city -> 
-      worker_pid = spawn(Metex.Worker, :loop, [])
-      send(worker_pid, {coordinator_pid, city})
-    end)
-  end
-
-  def temperature_of(location) do
+  ## Helpers
+  defp temperature_of(location) do
     url_for(location) 
     |> HTTPoison.get 
     |> parse_response
-    |> case do
-      {:ok, temp} ->
-        "#{location}: #{temp} °F"
-      :error ->
-        "#{location} not found"
-    end
   end
 
   defp url_for(location) do
-    location = URI.encode(location)
-    "http://api.openweathermap.org/data/2.5/weather?q=#{location}&appid=#{@apikey}"
+    "http://api.openweathermap.org/data/2.5/weather?q=#{location}&APPID=#{@apikey}"
   end
 
   defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: 200}}) do
-    body
-    |> JSON.decode!
+    body 
+    |> JSON.decode! 
     |> compute_temperature
   end
 
@@ -57,11 +55,14 @@ defmodule Metex.Worker do
       _ -> :error
     end
   end
+
+  defp update_stats(old_stats, location) do
+    Map.has_key?(old_stats, location)
+    |> case do
+      true ->
+        Map.update!(old_stats, location, &(&1 + 1))
+      false ->
+        Map.put_new(old_stats, location, 1)
+    end
+  end
 end
-
-# cities = ["Los Angeles", "San Francisco", "New York", "Shanghai", "Seoul"]
-
-# cities |> Enum.each(fn city -> 
-#   pid = spawn(Metex.Worker, :loop, [])
-#   send(pid, {self, city})
-# end)
