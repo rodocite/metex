@@ -12,6 +12,18 @@ defmodule Metex.Worker do
     GenServer.call(pid, {:location, location})
   end
 
+  def get_stats(pid) do
+    GenServer.call(pid, :get_stats)
+  end
+
+  def reset_stats(pid) do
+    GenServer.cast(pid, :reset_stats)
+  end
+
+  def stop(pid) do
+    GenServer.cast(pid, :stop)
+  end
+
   ## Callbacks
   def init(:ok) do
     {:ok, %{}}
@@ -22,10 +34,29 @@ defmodule Metex.Worker do
     |> case do
       {:ok, temp} ->
         new_stats = update_stats(stats, location)
-        {:reply, "#{temp}°F", new_stats}
+        {:reply, "#{location}: #{temp}°F", new_stats}
       _ ->
         {:reply, :error, stats}
     end
+  end
+
+  def handle_call(:get_stats, _from, stats) do
+    {:reply, stats, stats}
+  end
+
+  def handle_cast(:reset_stats, _stats) do
+    {:noreply, %{}}
+  end
+
+  def handle_cast(:stop, stats) do
+    {:stop, :normal, stats}
+  end
+
+  def terminate(reason, stats) do
+    IO.puts "Server terminated - #{inspect reason}"
+    IO.puts "Dumping data..."
+    IO.inspect(stats)
+    :ok
   end
   
   ## Helpers
